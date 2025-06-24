@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,8 +18,10 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
-import { Waves, Plus, Edit, Trash2, ArrowLeft, Dumbbell, Wifi, Coffee, Loader2 } from "lucide-react"
+import { Waves, Plus, Edit, Trash2, ArrowLeft, Dumbbell, Wifi, Coffee, Loader2, LogOut } from "lucide-react"
 import Link from "next/link"
+import { getFacilities, saveFacilities, formatCurrency } from "@/lib/storage"
+import { logout } from "@/app/actions/auth"
 
 interface Facility {
   id: string
@@ -39,61 +41,14 @@ interface Facility {
 }
 
 export default function FacilitiesPage() {
-  const [facilities, setFacilities] = useState<Facility[]>([
-    {
-      id: "1",
-      name: "Swimming Pool",
-      description: "Olympic-sized outdoor swimming pool with poolside service",
-      type: "Recreation",
-      hourlyRate: 25,
-      dailyRate: 150,
-      capacity: 50,
-      available: true,
-      operatingHours: { open: "06:00", close: "22:00" },
-      amenities: ["Poolside Bar", "Towel Service", "Lifeguard"],
-      bookingRequired: false,
-    },
-    {
-      id: "2",
-      name: "Fitness Center",
-      description: "Fully equipped gym with modern equipment and personal trainers",
-      type: "Fitness",
-      hourlyRate: 15,
-      dailyRate: 50,
-      capacity: 30,
-      available: true,
-      operatingHours: { open: "05:00", close: "23:00" },
-      amenities: ["Personal Trainer", "Locker Room", "Towel Service"],
-      bookingRequired: false,
-    },
-    {
-      id: "3",
-      name: "Golf Course",
-      description: "18-hole championship golf course with pro shop",
-      type: "Recreation",
-      hourlyRate: 75,
-      dailyRate: 200,
-      capacity: 4,
-      available: true,
-      operatingHours: { open: "06:00", close: "18:00" },
-      amenities: ["Golf Cart", "Caddy Service", "Pro Shop"],
-      bookingRequired: true,
-    },
-    {
-      id: "4",
-      name: "Spa & Wellness",
-      description: "Full-service spa with massage therapy and wellness treatments",
-      type: "Wellness",
-      hourlyRate: 120,
-      capacity: 10,
-      available: true,
-      operatingHours: { open: "09:00", close: "20:00" },
-      amenities: ["Massage Therapy", "Sauna", "Steam Room"],
-      bookingRequired: true,
-    },
-  ])
-
+  const [facilities, setFacilities] = useState<Facility[]>([])
   const [isAddingFacility, setIsAddingFacility] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [facilityToDelete, setFacilityToDelete] = useState<string | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [facilityToEdit, setFacilityToEdit] = useState<Facility | null>(null)
+
   const [newFacility, setNewFacility] = useState({
     name: "",
     description: "",
@@ -101,30 +56,87 @@ export default function FacilitiesPage() {
     hourlyRate: 0,
     dailyRate: 0,
     capacity: 0,
-    openTime: "",
-    closeTime: "",
+    openTime: "09:00",
+    closeTime: "18:00",
     amenities: "",
     bookingRequired: false,
   })
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [facilityToDelete, setFacilityToDelete] = useState<string | null>(null)
+  // Generate default facilities
+  const generateDefaultFacilities = (): Facility[] => [
+    {
+      id: "facility-1",
+      name: "Swimming Pool",
+      description: "Olympic-sized outdoor swimming pool with poolside service",
+      type: "Recreation",
+      hourlyRate: 2500,
+      dailyRate: 15000,
+      capacity: 50,
+      available: true,
+      operatingHours: { open: "06:00", close: "22:00" },
+      amenities: ["Poolside Bar", "Towel Service", "Lifeguard"],
+      bookingRequired: false,
+    },
+    {
+      id: "facility-2",
+      name: "Fitness Center",
+      description: "Fully equipped gym with modern equipment and personal trainers",
+      type: "Fitness",
+      hourlyRate: 1500,
+      dailyRate: 5000,
+      capacity: 30,
+      available: true,
+      operatingHours: { open: "05:00", close: "23:00" },
+      amenities: ["Personal Trainer", "Locker Room", "Towel Service"],
+      bookingRequired: false,
+    },
+    {
+      id: "facility-3",
+      name: "Conference Hall",
+      description: "Modern conference facility for business meetings and events",
+      type: "Business",
+      hourlyRate: 7500,
+      dailyRate: 50000,
+      capacity: 100,
+      available: true,
+      operatingHours: { open: "08:00", close: "20:00" },
+      amenities: ["Projector", "Sound System", "WiFi", "Catering"],
+      bookingRequired: true,
+    },
+  ]
 
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [facilityToEdit, setFacilityToEdit] = useState<Facility | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const storedFacilities = getFacilities()
+    if (storedFacilities.length > 0) {
+      setFacilities(storedFacilities)
+    } else {
+      const defaultFacilities = generateDefaultFacilities()
+      setFacilities(defaultFacilities)
+      saveFacilities(defaultFacilities)
+    }
+  }, [])
+
+  // Update localStorage whenever facilities change
+  const updateFacilities = (newFacilities: Facility[]) => {
+    setFacilities(newFacilities)
+    saveFacilities(newFacilities)
+  }
 
   const handleEditFacility = (facility: Facility) => {
-    setFacilityToEdit(facility)
+    setFacilityToEdit({ ...facility })
     setEditDialogOpen(true)
   }
 
   const saveEditFacility = async () => {
     if (facilityToEdit) {
       setIsLoading(true)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
-      setFacilities(facilities.map((facility) => (facility.id === facilityToEdit.id ? facilityToEdit : facility)))
+      const updatedFacilities = facilities.map((facility) =>
+        facility.id === facilityToEdit.id ? facilityToEdit : facility,
+      )
+      updateFacilities(updatedFacilities)
       setEditDialogOpen(false)
       setFacilityToEdit(null)
       setIsLoading(false)
@@ -138,15 +150,24 @@ export default function FacilitiesPage() {
 
   const confirmDeleteFacility = () => {
     if (facilityToDelete) {
-      setFacilities(facilities.filter((facility) => facility.id !== facilityToDelete))
+      const updatedFacilities = facilities.filter((facility) => facility.id !== facilityToDelete)
+      updateFacilities(updatedFacilities)
       setDeleteDialogOpen(false)
       setFacilityToDelete(null)
     }
   }
 
-  const handleAddFacility = () => {
+  const handleAddFacility = async () => {
+    if (!newFacility.name || !newFacility.type) {
+      alert("Please fill in all required fields")
+      return
+    }
+
+    setIsLoading(true)
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
     const facility: Facility = {
-      id: Date.now().toString(),
+      id: `facility-${Date.now()}`,
       name: newFacility.name,
       description: newFacility.description,
       type: newFacility.type,
@@ -165,7 +186,9 @@ export default function FacilitiesPage() {
       bookingRequired: newFacility.bookingRequired,
     }
 
-    setFacilities([...facilities, facility])
+    const updatedFacilities = [...facilities, facility]
+    updateFacilities(updatedFacilities)
+
     setNewFacility({
       name: "",
       description: "",
@@ -173,12 +196,13 @@ export default function FacilitiesPage() {
       hourlyRate: 0,
       dailyRate: 0,
       capacity: 0,
-      openTime: "",
-      closeTime: "",
+      openTime: "09:00",
+      closeTime: "18:00",
       amenities: "",
       bookingRequired: false,
     })
     setIsAddingFacility(false)
+    setIsLoading(false)
   }
 
   const getFacilityIcon = (type: string) => {
@@ -187,7 +211,7 @@ export default function FacilitiesPage() {
         return <Waves className="h-5 w-5 text-blue-600" />
       case "fitness":
         return <Dumbbell className="h-5 w-5 text-red-600" />
-      case "wellness":
+      case "business":
         return <Coffee className="h-5 w-5 text-green-600" />
       default:
         return <Wifi className="h-5 w-5 text-gray-600" />
@@ -195,6 +219,10 @@ export default function FacilitiesPage() {
   }
 
   const facilityTypes = ["Recreation", "Fitness", "Wellness", "Business", "Dining", "Entertainment"]
+
+  const handleLogout = async () => {
+    await logout()
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -217,154 +245,168 @@ export default function FacilitiesPage() {
                 <p className="text-sm text-gray-500">Manage your hotel facilities and charges</p>
               </div>
             </div>
-            <Dialog open={isAddingFacility} onOpenChange={setIsAddingFacility}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Facility
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Add New Facility</DialogTitle>
-                  <DialogDescription>Create a new facility for your hotel</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-                  <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-2">
+              <Dialog open={isAddingFacility} onOpenChange={setIsAddingFacility}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Facility
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Add New Facility</DialogTitle>
+                    <DialogDescription>Create a new facility for your hotel</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="facilityName">Facility Name *</Label>
+                        <Input
+                          id="facilityName"
+                          value={newFacility.name}
+                          onChange={(e) => setNewFacility({ ...newFacility, name: e.target.value })}
+                          placeholder="Conference Hall"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="facilityType">Type *</Label>
+                        <Select
+                          value={newFacility.type}
+                          onValueChange={(value) => setNewFacility({ ...newFacility, type: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {facilityTypes.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="facilityName">Facility Name</Label>
-                      <Input
-                        id="facilityName"
-                        value={newFacility.name}
-                        onChange={(e) => setNewFacility({ ...newFacility, name: e.target.value })}
-                        placeholder="Swimming Pool"
+                      <Label htmlFor="facilityDescription">Description</Label>
+                      <Textarea
+                        id="facilityDescription"
+                        value={newFacility.description}
+                        onChange={(e) => setNewFacility({ ...newFacility, description: e.target.value })}
+                        placeholder="Describe the facility and its features"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="facilityType">Type</Label>
-                      <Select
-                        value={newFacility.type}
-                        onValueChange={(value) => setNewFacility({ ...newFacility, type: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {facilityTypes.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="hourlyRate">Hourly Rate (₦)</Label>
+                        <Input
+                          id="hourlyRate"
+                          type="number"
+                          min="0"
+                          step="500"
+                          value={newFacility.hourlyRate}
+                          onChange={(e) =>
+                            setNewFacility({ ...newFacility, hourlyRate: Number.parseFloat(e.target.value) || 0 })
+                          }
+                          placeholder="2500"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dailyRate">Daily Rate (₦)</Label>
+                        <Input
+                          id="dailyRate"
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={newFacility.dailyRate}
+                          onChange={(e) =>
+                            setNewFacility({ ...newFacility, dailyRate: Number.parseFloat(e.target.value) || 0 })
+                          }
+                          placeholder="15000"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="capacity">Capacity</Label>
+                        <Input
+                          id="capacity"
+                          type="number"
+                          min="1"
+                          value={newFacility.capacity}
+                          onChange={(e) =>
+                            setNewFacility({ ...newFacility, capacity: Number.parseInt(e.target.value) || 0 })
+                          }
+                          placeholder="50"
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="facilityDescription">Description</Label>
-                    <Textarea
-                      id="facilityDescription"
-                      value={newFacility.description}
-                      onChange={(e) => setNewFacility({ ...newFacility, description: e.target.value })}
-                      placeholder="Describe the facility and its features"
-                    />
-                  </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="openTime">Opening Time</Label>
+                        <Input
+                          id="openTime"
+                          type="time"
+                          value={newFacility.openTime}
+                          onChange={(e) => setNewFacility({ ...newFacility, openTime: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="closeTime">Closing Time</Label>
+                        <Input
+                          id="closeTime"
+                          type="time"
+                          value={newFacility.closeTime}
+                          onChange={(e) => setNewFacility({ ...newFacility, closeTime: e.target.value })}
+                        />
+                      </div>
+                    </div>
 
-                  <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
+                      <Label htmlFor="amenities">Amenities (comma separated)</Label>
                       <Input
-                        id="hourlyRate"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={newFacility.hourlyRate}
-                        onChange={(e) =>
-                          setNewFacility({ ...newFacility, hourlyRate: Number.parseFloat(e.target.value) || 0 })
-                        }
-                        placeholder="25.00"
+                        id="amenities"
+                        value={newFacility.amenities}
+                        onChange={(e) => setNewFacility({ ...newFacility, amenities: e.target.value })}
+                        placeholder="WiFi, Sound System, Projector"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dailyRate">Daily Rate ($)</Label>
-                      <Input
-                        id="dailyRate"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={newFacility.dailyRate}
-                        onChange={(e) =>
-                          setNewFacility({ ...newFacility, dailyRate: Number.parseFloat(e.target.value) || 0 })
-                        }
-                        placeholder="150.00"
+
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="bookingRequired"
+                        checked={newFacility.bookingRequired}
+                        onCheckedChange={(checked) => setNewFacility({ ...newFacility, bookingRequired: checked })}
                       />
+                      <Label htmlFor="bookingRequired">Booking Required</Label>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="capacity">Capacity</Label>
-                      <Input
-                        id="capacity"
-                        type="number"
-                        min="1"
-                        value={newFacility.capacity}
-                        onChange={(e) =>
-                          setNewFacility({ ...newFacility, capacity: Number.parseInt(e.target.value) || 0 })
-                        }
-                        placeholder="50"
-                      />
+
+                    <div className="flex gap-2">
+                      <Button onClick={handleAddFacility} disabled={isLoading} className="flex-1">
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Adding...
+                          </>
+                        ) : (
+                          "Add Facility"
+                        )}
+                      </Button>
+                      <Button variant="outline" onClick={() => setIsAddingFacility(false)} disabled={isLoading}>
+                        Cancel
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="openTime">Opening Time</Label>
-                      <Input
-                        id="openTime"
-                        type="time"
-                        value={newFacility.openTime}
-                        onChange={(e) => setNewFacility({ ...newFacility, openTime: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="closeTime">Closing Time</Label>
-                      <Input
-                        id="closeTime"
-                        type="time"
-                        value={newFacility.closeTime}
-                        onChange={(e) => setNewFacility({ ...newFacility, closeTime: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="amenities">Amenities (comma separated)</Label>
-                    <Input
-                      id="amenities"
-                      value={newFacility.amenities}
-                      onChange={(e) => setNewFacility({ ...newFacility, amenities: e.target.value })}
-                      placeholder="Poolside Bar, Towel Service, Lifeguard"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="bookingRequired"
-                      checked={newFacility.bookingRequired}
-                      onCheckedChange={(checked) => setNewFacility({ ...newFacility, bookingRequired: checked })}
-                    />
-                    <Label htmlFor="bookingRequired">Booking Required</Label>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button onClick={handleAddFacility} className="flex-1">
-                      Add Facility
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsAddingFacility(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+              <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -394,13 +436,14 @@ export default function FacilitiesPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                $
                 {facilities.filter((f) => f.hourlyRate).length > 0
-                  ? Math.round(
-                      facilities.filter((f) => f.hourlyRate).reduce((sum, f) => sum + (f.hourlyRate || 0), 0) /
-                        facilities.filter((f) => f.hourlyRate).length,
+                  ? formatCurrency(
+                      Math.round(
+                        facilities.filter((f) => f.hourlyRate).reduce((sum, f) => sum + (f.hourlyRate || 0), 0) /
+                          facilities.filter((f) => f.hourlyRate).length,
+                      ),
                     )
-                  : 0}
+                  : "₦0"}
               </div>
             </CardContent>
           </Card>
@@ -416,164 +459,92 @@ export default function FacilitiesPage() {
           </Card>
         </div>
 
-        {/* Facilities Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {facilities.map((facility) => (
-            <Card key={facility.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {getFacilityIcon(facility.type)}
-                  {facility.name}
-                </CardTitle>
-                <CardDescription>{facility.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Type:</span>
-                    <Badge variant="secondary">{facility.type}</Badge>
-                  </div>
-
-                  {facility.hourlyRate && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Hourly Rate:</span>
-                      <span className="font-medium">${facility.hourlyRate}</span>
-                    </div>
-                  )}
-
-                  {facility.dailyRate && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Daily Rate:</span>
-                      <span className="font-medium">${facility.dailyRate}</span>
-                    </div>
-                  )}
-
-                  {facility.capacity && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Capacity:</span>
-                      <span className="font-medium">{facility.capacity} people</span>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Hours:</span>
-                    <span className="font-medium">
-                      {facility.operatingHours.open} - {facility.operatingHours.close}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Status:</span>
-                    <Badge className={facility.available ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
-                      {facility.available ? "Available" : "Unavailable"}
-                    </Badge>
-                  </div>
-
-                  {facility.bookingRequired && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Booking:</span>
-                      <Badge variant="outline">Required</Badge>
-                    </div>
-                  )}
-
-                  {facility.amenities.length > 0 && (
-                    <div>
-                      <span className="text-sm text-gray-500 block mb-2">Amenities:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {facility.amenities.map((amenity, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {amenity}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2 mt-4">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEditFacility(facility)}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDeleteFacility(facility.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
         {/* Facilities Table */}
         <Card>
           <CardHeader>
-            <CardTitle>All Facilities</CardTitle>
+            <CardTitle>All Facilities ({facilities.length})</CardTitle>
             <CardDescription>Complete overview of your hotel facilities</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Hourly Rate</TableHead>
-                  <TableHead>Daily Rate</TableHead>
-                  <TableHead>Capacity</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {facilities.map((facility) => (
-                  <TableRow key={facility.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getFacilityIcon(facility.type)}
-                        <div>
-                          <div className="font-medium">{facility.name}</div>
-                          <div className="text-sm text-gray-500">
-                            {facility.operatingHours.open} - {facility.operatingHours.close}
+            {facilities.length === 0 ? (
+              <div className="text-center py-8">
+                <Waves className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No facilities found</h3>
+                <p className="text-gray-500 mb-4">Get started by adding your first facility</p>
+                <Button onClick={() => setIsAddingFacility(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Your First Facility
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Hourly Rate</TableHead>
+                      <TableHead>Daily Rate</TableHead>
+                      <TableHead>Capacity</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {facilities.map((facility) => (
+                      <TableRow key={facility.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getFacilityIcon(facility.type)}
+                            <div>
+                              <div className="font-medium">{facility.name}</div>
+                              <div className="text-sm text-gray-500">
+                                {facility.operatingHours.open} - {facility.operatingHours.close}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{facility.type}</Badge>
-                    </TableCell>
-                    <TableCell>{facility.hourlyRate ? `$${facility.hourlyRate}` : "-"}</TableCell>
-                    <TableCell>{facility.dailyRate ? `$${facility.dailyRate}` : "-"}</TableCell>
-                    <TableCell>{facility.capacity ? `${facility.capacity} people` : "-"}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <Badge
-                          className={facility.available ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
-                        >
-                          {facility.available ? "Available" : "Unavailable"}
-                        </Badge>
-                        {facility.bookingRequired && (
-                          <Badge variant="outline" className="text-xs">
-                            Booking Required
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEditFacility(facility)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDeleteFacility(facility.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{facility.type}</Badge>
+                        </TableCell>
+                        <TableCell>{facility.hourlyRate ? formatCurrency(facility.hourlyRate) : "-"}</TableCell>
+                        <TableCell>{facility.dailyRate ? formatCurrency(facility.dailyRate) : "-"}</TableCell>
+                        <TableCell>{facility.capacity ? `${facility.capacity} people` : "-"}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <Badge
+                              className={facility.available ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
+                            >
+                              {facility.available ? "Available" : "Unavailable"}
+                            </Badge>
+                            {facility.bookingRequired && (
+                              <Badge variant="outline" className="text-xs">
+                                Booking Required
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleEditFacility(facility)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleDeleteFacility(facility.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -592,7 +563,8 @@ export default function FacilitiesPage() {
           </div>
         </DialogContent>
       </Dialog>
-      {/* Edit Facility Dialog */}
+
+      {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -641,12 +613,12 @@ export default function FacilitiesPage() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="editHourlyRate">Hourly Rate ($)</Label>
+                  <Label htmlFor="editHourlyRate">Hourly Rate (₦)</Label>
                   <Input
                     id="editHourlyRate"
                     type="number"
                     min="0"
-                    step="0.01"
+                    step="500"
                     value={facilityToEdit.hourlyRate || 0}
                     onChange={(e) =>
                       setFacilityToEdit({
@@ -657,12 +629,12 @@ export default function FacilitiesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="editDailyRate">Daily Rate ($)</Label>
+                  <Label htmlFor="editDailyRate">Daily Rate (₦)</Label>
                   <Input
                     id="editDailyRate"
                     type="number"
                     min="0"
-                    step="0.01"
+                    step="1000"
                     value={facilityToEdit.dailyRate || 0}
                     onChange={(e) =>
                       setFacilityToEdit({

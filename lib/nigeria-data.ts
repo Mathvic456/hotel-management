@@ -1,4 +1,3 @@
-// Nigerian states and their capitals
 export const NIGERIAN_STATES = [
   { state: "Abia", capital: "Umuahia" },
   { state: "Adamawa", capital: "Yola" },
@@ -12,9 +11,9 @@ export const NIGERIAN_STATES = [
   { state: "Delta", capital: "Asaba" },
   { state: "Ebonyi", capital: "Abakaliki" },
   { state: "Edo", capital: "Benin City" },
-  { state: "Ekiti", capital: "Ado-Ekiti" },
+  { state: "Ekiti", capital: "Ado Ekiti" },
   { state: "Enugu", capital: "Enugu" },
-  { state: "FCT", capital: "Abuja" },
+  { state: "Federal Capital Territory", capital: "Abuja" },
   { state: "Gombe", capital: "Gombe" },
   { state: "Imo", capital: "Owerri" },
   { state: "Jigawa", capital: "Dutse" },
@@ -39,15 +38,15 @@ export const NIGERIAN_STATES = [
   { state: "Zamfara", capital: "Gusau" },
 ]
 
-export const getStateCapital = (state: string): string => {
-  const stateData = NIGERIAN_STATES.find((s) => s.state === state)
-  return stateData?.capital || ""
+export function getStateCapital(stateName: string): string {
+  const stateData = NIGERIAN_STATES.find((s) => s.state === stateName)
+  return stateData ? stateData.capital : ""
 }
 
-export const getStates = (): string[] => {
+export function getAllStates(): string[] {
   return NIGERIAN_STATES.map((s) => s.state)
 }
 
-export const getCities = (): string[] => {
+export function getAllCapitals(): string[] {
   return NIGERIAN_STATES.map((s) => s.capital)
 }
