@@ -41,9 +41,96 @@ interface OnboardingData {
   seasonalPricing: boolean
 }
 
+// Add test accounts at the top after the interfaces
+const testAccounts = [
+  {
+    id: "test-user-1",
+    email: "admin@grandhotel.ng",
+    password: "admin123",
+    firstName: "Adebayo",
+    lastName: "Ogundimu",
+    hotelName: "Grand Hotel Lagos",
+    phone: "+234 801 234 5678",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "test-user-2",
+    email: "manager@resortabuja.ng",
+    password: "manager123",
+    firstName: "Fatima",
+    lastName: "Ibrahim",
+    hotelName: "Luxury Resort Abuja",
+    phone: "+234 802 345 6789",
+    createdAt: new Date().toISOString(),
+  },
+]
+
 // Simulate user storage (in real app, this would be a database)
 const users = new Map()
+
+// Initialize users Map with test accounts
+testAccounts.forEach((account) => {
+  users.set(account.email, account)
+})
+
 const onboardingData = new Map()
+
+// Add test onboarding data for the test accounts
+const testOnboardingData = {
+  "test-user-1": {
+    hotelType: "hotel",
+    address: "123 Victoria Island",
+    city: "Ikeja",
+    state: "Lagos",
+    country: "Nigeria",
+    zipCode: "100001",
+    website: "https://grandhotel.ng",
+    description: "Luxury hotel in the heart of Lagos",
+    checkInTime: "14:00",
+    checkOutTime: "12:00",
+    currency: "NGN",
+    timezone: "Africa/Lagos",
+    totalRooms: 50,
+    hasRestaurant: true,
+    hasSpa: true,
+    hasGym: true,
+    hasPool: true,
+    hasGolf: false,
+    averageRoomRate: 45000,
+    seasonalPricing: true,
+    completed: true,
+    completedAt: new Date().toISOString(),
+  },
+  "test-user-2": {
+    hotelType: "resort",
+    address: "456 Central Business District",
+    city: "Abuja",
+    state: "Federal Capital Territory",
+    country: "Nigeria",
+    zipCode: "900001",
+    website: "https://resortabuja.ng",
+    description: "Premium resort in Nigeria's capital",
+    checkInTime: "15:00",
+    checkOutTime: "11:00",
+    currency: "NGN",
+    timezone: "Africa/Lagos",
+    totalRooms: 75,
+    hasRestaurant: true,
+    hasSpa: true,
+    hasGym: true,
+    hasPool: true,
+    hasGolf: true,
+    averageRoomRate: 65000,
+    seasonalPricing: true,
+    completed: true,
+    completedAt: new Date().toISOString(),
+  },
+}
+
+// Initialize onboardingData Map with test data
+testAccounts.forEach((account) => {
+  onboardingData.set(account.id, testOnboardingData[account.id])
+})
 
 export async function signup(formData: FormData) {
   // Simulate API delay
@@ -152,4 +239,14 @@ export async function login(formData: FormData) {
   } else {
     redirect("/dashboard")
   }
+}
+
+// Add logout function at the end
+export async function logout() {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 500))
+
+  // In a real app, you would clear server-side session here
+  // For now, we'll just redirect to login
+  redirect("/auth/login")
 }

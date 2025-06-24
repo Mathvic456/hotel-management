@@ -96,6 +96,34 @@ export default function LoginPage() {
             </Button>
           </form>
 
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <h3 className="font-medium text-blue-900 mb-2">🧪 Test Accounts</h3>
+            <div className="space-y-2 text-sm">
+              <div className="bg-white p-2 rounded border">
+                <p>
+                  <strong>Admin Account:</strong>
+                </p>
+                <p>
+                  Email: <code className="bg-gray-100 px-1 rounded">admin@grandhotel.ng</code>
+                </p>
+                <p>
+                  Password: <code className="bg-gray-100 px-1 rounded">admin123</code>
+                </p>
+              </div>
+              <div className="bg-white p-2 rounded border">
+                <p>
+                  <strong>Manager Account:</strong>
+                </p>
+                <p>
+                  Email: <code className="bg-gray-100 px-1 rounded">manager@resortabuja.ng</code>
+                </p>
+                <p>
+                  Password: <code className="bg-gray-100 px-1 rounded">manager123</code>
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-6 text-center text-sm">
             {"Don't have an account? "}
             <Link href="/auth/signup" className="text-blue-600 hover:underline">

@@ -16,6 +16,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
+// Add logout import at the top
+import { logout } from "@/app/actions/auth"
+
 // This would normally come from your database/session
 const mockUserData = {
   hotelName: "Grand Hotel & Resort",
@@ -54,6 +57,11 @@ export default function DashboardPage() {
                   Settings
                 </Button>
               </Link>
+              <form action={logout}>
+                <Button variant="outline" size="sm" type="submit">
+                  Logout
+                </Button>
+              </form>
             </div>
           </div>
         </div>
